@@ -408,7 +408,6 @@ class ChromatographicResponseFunction:
             separation.loc <= self.time_target, 1.0, 0.0).sum()
 
         weight = eluted_before_time_target / total_components
-        weight = weight * 2.0 - 1.0
 
         if separation.eluted < 2:
             return ChromatographicResponse(
