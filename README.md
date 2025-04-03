@@ -1,10 +1,10 @@
 # Reinforcement learning for automated method development in chromatography using SB3 PPO
 ## Requirements: 
-  Python >= 3.10
-  Stable-baselines3 = 2.5.0
-  Pytorch = 2.6.0 + Cuda 12.4
-  Wandb = 0.19.4 
-  All (additional) required Python packages can be found in requirements.txt. To install these packages see: requirements.txt
+  *Python >= 3.10
+  *Stable-baselines3 = 2.5.0
+  *Pytorch = 2.6.0 + Cuda 12.4
+  *Wandb = 0.19.4 
+  *All (additional) required Python packages can be found in requirements.txt. To install these packages see: requirements.txt
 
 ## Description + Training:
 This is initial work aimed at training reinforcement learning agents with the purpose of automating chromatographic method development. 
