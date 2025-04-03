@@ -1,4 +1,4 @@
-from Utility_funcs import *
+from env_utility_funcs import *
 import os
 import numpy as np
 import gymnasium as gym
@@ -109,6 +109,7 @@ class Chromatography(gym.Env):
             self._seed += 16
 
         self.mixture = self.mixture_generator.generate(seed=self._seed)
+        # Ensure that the sample is always selected from a known solvable sample set (e.g. sample_set_10p.npy) 
         if self._seed is not None:
             if self._seed > len(self._solvable_mixtures):
                 self._seed = self._seed - len(self._solvable_mixtures)
@@ -137,7 +138,8 @@ class Chromatography(gym.Env):
         self.step_counter += 1
 
         action = action.astype(self._dtype)
-        # Limit actions to positive gradients (there are more sound ways to do this)
+        # Limit actions to positive gradients (a more proper way to do this is by penalizing actions/action masking)
+        # implementing above changes would speed up the rate of convergence
         for i in range(0, self.num_actions - 1):
             if action[i + 1] < action[i]:
                 action[i + 1] = action[i]
@@ -155,11 +157,13 @@ class Chromatography(gym.Env):
         }
 
         reward = self.result.reward
-        if reward == 1.0:
+        # Attribute a reward of 1.0 if the sample is solved (all peaks achieving required resolution and eluting within the time threshold)
+        if reward == 1.0: 
             solved = 1.0
             reward = 1.0
             truncated = False
             terminal = True
+        # Terminate the episode if the experimental budget is fully used up. 
         elif self.step_counter == self.num_experiments:
             if reward == 1.0:
                 solved = 1.0
@@ -169,19 +173,26 @@ class Chromatography(gym.Env):
                 solved = 0.0
 
             terminal = truncated = True
+        # Attribute a reward of 0.0 if the sample is not solved. 
         else:
             solved = 0.0
             reward = 0.0
             terminal = truncated = False
 
+        # Additional info for logging 
         info = {
-            'Separation': self.separation, 'program': self.program, 'result': self.result, 'mixture': self.mixture,
-            'Action': scaled_action, 'Observation': observation, 'Solved': solved
+            'Separation': self.separation, 
+            'program': self.program, 
+            'result': self.result, 
+            'mixture': self.mixture,
+            'Action': scaled_action, 
+            'Observation': observation, 'Solved': solved
         }
 
         return observation, reward, terminal, truncated, info
 
     def render(self) -> np.ndarray:
+        # Can be used to plot figures for separate evaluation. 
         folder_name = "figures"
         savepath = os.path.join(folder_name, f"figure_{self.step_counter + self._seed}.png")
         _plot_separation(
