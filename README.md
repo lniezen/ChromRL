@@ -7,10 +7,10 @@
 * All (additional) required Python packages can be found in requirements.txt. To install these packages see: requirements.txt
 
 ## Description + Training:
-This is further work aimed at training reinforcement learning agents with the purpose of automating chromatographic method development.\
-The algorithms used are reliable stable-baselines 3 (PyTorch) implementations of reinforcement learning algorithms + weight and biases for monitoring and tuning.\ 
+This is further work aimed at training reinforcement learning agents with the purpose of automating chromatographic method development.  
+The algorithms used are reliable stable-baselines 3 (PyTorch) implementations of reinforcement learning algorithms + weight and biases for monitoring and tuning.  
 
-To train an example PPO agent navigate to and run the sweep_example code, which trains a PPO agent capable of selecting 20 min. gradient programs for simple samples containing 10 components.\
+To train an example PPO agent navigate to and run the sweep_example code, which trains a PPO agent capable of selecting 20 min. gradient programs for simple samples containing 10 components.  
 
-For more information regarding implementation details, see this publication: https://doi.org/10.1016/j.chroma.2025.465845\ 
-The original environment (and the work which this is heavily based on) can be found at: https://github.com/akensert/reinforceable\
+For more information regarding implementation details, see this publication: https://doi.org/10.1016/j.chroma.2025.465845  
+The original environment (and the work which this is heavily based on) can be found at: https://github.com/akensert/reinforceable  
