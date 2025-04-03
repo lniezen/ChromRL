@@ -14,4 +14,3 @@ To train an example PPO agent navigate to and run the sweep_example code, which 
 
 For more information regarding implementation details, see this publication: https://doi.org/10.1016/j.chroma.2025.465845 
 The original environment used to train the agent can be found at: https://github.com/akensert/reinforceable
-
