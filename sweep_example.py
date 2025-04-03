@@ -96,15 +96,6 @@ def main():
 
     # Copy sweep config and remove any non-model-specific parameters before passing to the model
     model_parameters = wandb.config.as_dict().copy()
-    '''
-    model_parameters.pop("pi_layer_size")
-    model_parameters.pop("pi_num_layers")
-    model_parameters.pop("vf_layer_size")
-    model_parameters.pop("vf_num_layers")
-    model_parameters.pop("number_of_experiments")
-    model_parameters.pop("initial_learning_rate")
-    model_parameters.pop("number_of_stacked_observations")
-    '''
     keys_to_remove = {
         "pi_layer_size", "pi_num_layers", "vf_layer_size", "vf_num_layers",
         "number_of_experiments", "initial_learning_rate", "number_of_stacked_observations"
