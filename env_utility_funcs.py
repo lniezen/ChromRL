@@ -419,17 +419,9 @@ class ChromatographicResponseFunction:
         critical_resolution = min(resolution)
         critical_resolution_scaled = self._scale_resolution(critical_resolution)
         resolution_avg = self._average_resolution(resolution_scaled)
-
-        reward = resolution_avg
-
-        penalty = 0.0
-
-        reward = (
-                self.reward_coef * reward - self.penalty_coef * penalty
-        )
-
+        
         return ChromatographicResponse(
-            reward=np.array(reward * weight, self.dtype),
+            reward=np.array(resolution_avg * weight, self.dtype),
             resolutions=critical_resolution_scaled * weight)
 
     def _compute_resolution(self, loc, scale):
