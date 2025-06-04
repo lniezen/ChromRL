@@ -139,12 +139,6 @@ class Chromatography(gym.Env):
         self.step_counter += 1
 
         action = action.astype(self._dtype)
-        # Limit actions to positive gradients (a more proper way to do this is by penalizing actions/action masking)
-        # implementing above changes would speed up the rate of convergence
-        for i in range(0, self.num_actions - 1):
-            if action[i + 1] < action[i]:
-                action[i + 1] = action[i]
-
         scaled_action = action / 2. + 0.5
 
         self.program.set(scaled_action)
