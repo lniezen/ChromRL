@@ -58,7 +58,6 @@ def custom_evaluate_policy(
     observations = env.reset()
     states = None
     episode_starts = np.ones((env.num_envs,), dtype=bool)
-
     while (episode_counts < episode_count_targets).any():
         actions, states = model.predict(
             observations,
@@ -68,7 +67,7 @@ def custom_evaluate_policy(
         )
         if np.isnan(actions).any():
             raise ValueError(f"NaN in actions: {actions}")
-        new_observations, rewards, dones, infos = env.step(actions)
+        observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1
 
@@ -114,9 +113,7 @@ def custom_evaluate_policy(
                     current_rewards[i] = 0
                     current_lengths[i] = 0
                     current_solutions[i] = 0
-
-
-        observations = new_observations
+                    
         if render:
             env.render()
 
