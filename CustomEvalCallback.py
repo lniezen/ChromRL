@@ -21,6 +21,7 @@ from stable_baselines3.common.callbacks import EvalCallback
 if TYPE_CHECKING:
     from stable_baselines3.common import base_class
 
+
 class CustomEvalCallback(EvalCallback):
     """
     Callback for evaluating an agent.
@@ -48,7 +49,7 @@ class CustomEvalCallback(EvalCallback):
     :param warn: Passed to ``evaluate_policy`` (warns if ``eval_env`` has not been
         wrapped with a Monitor wrapper)
     """
-    
+
     def _on_step(self) -> bool:
         continue_training = True
 
@@ -139,4 +140,4 @@ class CustomEvalCallback(EvalCallback):
                 continue_training = continue_training and self._on_event()
 
         return continue_training
-        
+
