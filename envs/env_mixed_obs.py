@@ -55,6 +55,8 @@ class Chromatography(gym.Env):
         self.max_exp_time = time_target
 
         self._seed = seed
+        self.previous_seed = seed
+
         self._solvable_mixtures = solvable_mixtures
         self.num_actions = num_actions
         self._dtype = dtype
@@ -109,10 +111,11 @@ class Chromatography(gym.Env):
     def reset(self, **kwargs) -> tuple:
         self.step_counter = 0
 
-        if 'seed' in kwargs:
-            self._seed = kwargs.pop('seed')
-        elif self._seed is not None:
-            self._seed += 16
+        # SB3 resets an additional time, this circumvents the seed incrementing incorrectly
+        if self._seed != self.previous_seed and self._seed is not None:
+            self._seed = self.previous_seed
+        if self._seed is not None:
+            self._seed += 1
 
         self.mixture = self.mixture_generator.generate(seed=self._seed)
         # Ensure that the sample is always selected from a known solvable sample set (e.g. sample_set_10p.npy)
@@ -120,8 +123,7 @@ class Chromatography(gym.Env):
             if self._seed > len(self._solvable_mixtures):
                 self._seed = self._seed - len(self._solvable_mixtures)
             if self._seed <= len(self._solvable_mixtures):
-                mixtures_list = list(self._solvable_mixtures.items())
-                self.sample_key, self.mixture = mixtures_list[self._seed - 1]
+                self.mixture = self._solvable_mixtures[self._seed - 1]
 
         scaled_action = self.initial_action / 2. + 0.5
         self.program.set(scaled_action)
@@ -143,6 +145,7 @@ class Chromatography(gym.Env):
 
     def step(self, action: np.ndarray) -> tuple:
         self.step_counter += 1
+        self.previous_seed = self._seed
 
         action = action.astype(self._dtype)
         scaled_action = action / 2. + 0.5
