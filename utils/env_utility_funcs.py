@@ -1,10 +1,14 @@
 import numpy as np
-from scipy.interpolate import interp1d
 
 from typing import NamedTuple
 
 from math import ceil
 from math import floor
+
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib.colors import ListedColormap, BoundaryNorm
+import matplotlib.pyplot as plt
 
 
 class MixtureGenerator:
@@ -184,7 +188,7 @@ class MobilePhaseProgram:
 
         In other words, performs the specified chromatographic run.
 
-        This function basically runs numerical Neue-Kuss retention models
+        This function basically runs either analytical or numerical Neue-Kuss retention models
         based on phi (obtained from self.set(action)) and the Neue-Kuss
         parameters (compounds).
 
@@ -210,23 +214,67 @@ class MobilePhaseProgram:
 
         rng = np.random.RandomState(seed)
 
-        kw, s1, s2 = compounds.T
-        phi = self.phi
-        time_delta = self.time.delta
+        k0, s1, s2 = compounds.T
         void_time = self.VOID_TIME
+        tau = 0
+        t0 = void_time
+        phi_ini = np.min(self.phi)
+        phi_fin = np.max(self.phi)
+        B = (phi_fin - phi_ini) / 20.0
 
-        k = kw * (1 + s2 * phi) ** 2 * np.exp(-(s1 * phi) / (1 + s2 * phi))
-        # assert k.shape == phi.shape[:-1] + kw.shape
-        time_in_column = np.cumsum((1 + k) / k * time_delta, axis=0)
-        distance_travelled = np.cumsum(time_delta / (void_time * k), axis=0)
-        retention_times = np.min(
-            np.where(
-                distance_travelled >= 1.0,
-                time_in_column,
-                float('inf')
-            ),
-            axis=0
-        )
+        # Calculate retention times analytically
+        # Define functions
+        def f(k0, s1, s2, k_ini, B, t0, tau, phi_ini):
+         return np.log(B * s1 * k0 * (t0 - (tau / k_ini)) + np.exp((s1 * phi_ini) / (phi_ini * s2 + 1)))
+
+        def NeueKuss(F, S_1, S_2):
+         return F / (S_1 - S_2 * F)
+
+        def NeueKuss_After(k0, k_ini, k_fin, s1, s2, B, t0, tg, tau, phi_ini, phi_fin):
+         return (k_fin * (t0 - tau / k_ini - (
+                 (np.exp(s1 * phi_fin / (1 + s1 * phi_fin)) - np.exp(s2 * phi_ini / (1 + s2 * phi_ini))) /
+                 (s1 * B * k0))) + tg + tau + t0)
+
+        k_ini = k0 * (1 + s2 * phi_ini) ** 2 * np.exp((-s1 * phi_ini) / (1 + s2 * phi_ini))
+        k_fin = k0 * (1 + s2 * phi_fin) ** 2 * np.exp((-s1 * phi_fin) / (1 + s2 * phi_fin))
+
+        tR_before = t0 * (1 + k_ini)
+        if B == 0:
+            retention_times = tR_before
+        else:
+            tg = (phi_fin - phi_ini) / B
+            # Estimate retention time and peak width (sigma) per selectivity
+            F = f(k0, s1, s2, k_ini, B, t0, tau, phi_ini)
+            phi_e = NeueKuss(F, s1, s2)
+
+            tR_dim = (phi_e - phi_ini) / B + t0 + tau
+            tR_after = NeueKuss_After(k0, k_ini, k_fin, s1, s2, B, t0, tg, tau,
+                               phi_ini, phi_fin)
+
+            # Check if component eluted before, during, or after the gradient and sort retention times appropriately
+            tR_dim[tR_before < (t0 + tau)] = tR_before[tR_before < (t0 + tau)]
+            tR_dim[tR_dim > (t0 + tau + tg)] = tR_after[tR_dim > (t0 + tau + tg)]
+
+            retention_times = tR_dim
+
+        # Solve numerical (currently assuming t_dwell, t_ini = 0.0)
+        # kw, s1, s2 = compounds.T
+        # phi = self.phi
+        # time_delta = self.time.delta
+        # void_time = self.VOID_TIME
+        #
+        # k = kw * (1 + s2 * phi) ** 2 * np.exp(-(s1 * phi) / (1 + s2 * phi))
+        # # assert k.shape == phi.shape[:-1] + kw.shape
+        # time_in_column = np.cumsum((1 + k) / k * time_delta, axis=0)
+        # distance_travelled = np.cumsum(time_delta / (void_time * k), axis=0)
+        # retention_times = np.min(
+        #     np.where(
+        #         distance_travelled >= 1.0,
+        #         time_in_column,
+        #         float('inf')
+        #     ),
+        #     axis=0
+        # )
 
         amplitude = rng.uniform(low=0.25, high=1.0, size=retention_times.shape)
         scale = rng.uniform(low=0.020, high=0.020, size=retention_times.shape)
@@ -437,3 +485,76 @@ class ChromatographicResponseFunction:
 
     def _average_resolution(self, resolution):
         return np.mean(resolution)
+
+
+def plot_contour(
+        ax,
+        phi_0_grid, phi_1_grid,
+        surface,
+        title,
+        best_phi_points,
+        best_time_points,
+        optimal_phi_ini,
+        optimal_phi_fin,
+        used_values,
+        trial_num,
+        cmap="plasma",
+):
+    best_phi_ini = best_phi_points[0]
+    best_phi_fin = best_phi_points[1]
+    PHI_0, PHI_1 = np.meshgrid(phi_0_grid, phi_1_grid, indexing='ij')
+
+    rs_max = np.max(surface)
+    if rs_max > 1.0:
+        levels_1_max = np.linspace(0, rs_max, 101)  # 101 intervals above 1
+        levels = np.unique(np.concatenate([levels_1_max]))
+    else:
+        levels = np.linspace(0, 1, 100)
+
+    # --- Build colormap ---
+    cmap_0_1 = plt.cm.get_cmap(cmap, 100)  # choose your cmap
+    colors_0_1 = cmap_0_1(np.linspace(0, 1, 100))
+    if rs_max > 1.0:
+        cmap_above = plt.cm.get_cmap(cmap, 100)  # different ramp for above-1 if you like
+        colors_above = cmap_above(np.linspace(0, 1, 101))
+        colors = colors_above
+    else:
+        colors = colors_0_1
+
+    cmap = ListedColormap(colors)
+    norm = BoundaryNorm(levels, cmap.N)
+    figure = ax.contourf(PHI_0, PHI_1, surface, levels=levels, cmap=cmap, norm=norm)
+    plt.colorbar(figure, ax=ax, ticks=np.arange(0, 1, 0.1))
+
+    ax.set(
+        xlabel="ϕ_ini",
+        ylabel="ϕ_fin",
+        xlim=(0, 1),
+        ylim=(0, 1),
+    )
+    ax.set_title(f"{title} (Trial {trial_num})", fontsize=10)  # smaller title font
+
+    # Axis label fonts
+    ax.xaxis.label.set_size(8)
+    ax.yaxis.label.set_size(8)
+
+    # Tick label fonts
+    ax.tick_params(axis="both", which="major", labelsize=8)
+
+    if len(used_values) > 1:
+        # prev_points = [(phi, tG) for phi, tG in used_values if (phi, tG) != (best_phi_ini, best_phi_fin)]
+        prev_points = [
+            phi_points
+            for phi_points, _ in used_values
+            if not np.array_equal(phi_points, best_phi_points)
+        ]
+
+        if prev_points:
+            x_prev, y_prev = zip(*prev_points)
+            ax.scatter(x_prev, y_prev, color="blue", edgecolor="black", s=60, alpha=0.4)
+            for idx, (x, y) in enumerate(prev_points, 1):
+                ax.text(x, y, str(idx), color="white", fontsize=6, ha='center', va='center', weight='bold')
+
+    ax.scatter(best_phi_ini, best_phi_fin, color="red", edgecolor="black", s=30, label="Selected Exp.")
+    ax.scatter(optimal_phi_ini, optimal_phi_fin, marker="x", color="white", s=80, label="Optimal Exp.")
+    return
