@@ -15,8 +15,8 @@ from utils.CustomLoggingCallback import TensorboardCallback
 from utils.CustomLRSchedule import *
 from wandb.integration.sb3 import WandbCallback
 
-# from envs.env_chromatogram_obs import Chromatography
-from envs.env_peak_obs import Chromatography
+from envs.env_chromatogram_obs import Chromatography
+# from envs.env_peak_obs import Chromatography
 # from envs.env_mixed_obs import Chromatography
 
 def main():
@@ -38,8 +38,9 @@ def main():
     os.makedirs(logs_dir, exist_ok=True)
 
     # Load solvable mixtures
-    filename = "sample_sets/example_samples_15p.npy"
+    filename = "sample_sets/example_training_samples_15p.npy"
     solvable_mixtures = np.load(filename, allow_pickle=True).item()
+    solvable_mixtures = list(solvable_mixtures.values())
 
     # Training environment
     env = make_vec_env(
